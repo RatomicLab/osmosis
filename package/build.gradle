@@ -9,6 +9,7 @@ dependencies {
     runtime project(':osmosis-core')
     runtime project(':osmosis-dataset')
     runtime project(':osmosis-extract')
+    runtime project(':osmosis-geojson')
     runtime project(':osmosis-pbf')
     runtime project(':osmosis-pbf2')
     runtime project(':osmosis-pgsimple')
