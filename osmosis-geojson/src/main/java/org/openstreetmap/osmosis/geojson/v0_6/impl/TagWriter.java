@@ -20,8 +20,8 @@ public class TagWriter extends ElementWriter {
 	 * @param indentLevel
 	 *            The indent level of the element.
 	 */
-	public TagWriter(int indentLevel) {
-        super(indentLevel);
+	public TagWriter(int indentLevel, boolean prettyOutput) {
+        super(indentLevel, prettyOutput);
 	}
 
     /**

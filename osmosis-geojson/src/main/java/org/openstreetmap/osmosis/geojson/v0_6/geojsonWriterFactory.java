@@ -18,6 +18,9 @@ import java.io.File;
 public class geojsonWriterFactory extends geojsonTaskManagerFactory {
 	private static final String ARG_FILE_NAME = "file";
 	private static final String DEFAULT_FILE_NAME = "dump.geojson";
+
+    private static final String ARG_PRETTY_OUTPUT = "pretty";
+    private static final boolean DEFAULT_PRETTY_OUTPUT = false;
 	
 	/**
 	 * {@inheritDoc}
@@ -39,9 +42,11 @@ public class geojsonWriterFactory extends geojsonTaskManagerFactory {
 		
 		// Create a file object from the file name provided.
 		file = new File(fileName);
-		
+
+        boolean prettyOutput = getBooleanArgument(taskConfig, ARG_PRETTY_OUTPUT, DEFAULT_PRETTY_OUTPUT);
+
 		// Build the task object.
-		task = new geojsonWriter(file, compressionMethod);
+		task = new geojsonWriter(file, compressionMethod, prettyOutput);
 		
 		return new SinkManager(taskConfig.getId(), task, taskConfig.getPipeArgs());
 	}

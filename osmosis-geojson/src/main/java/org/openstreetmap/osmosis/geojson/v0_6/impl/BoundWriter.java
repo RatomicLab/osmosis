@@ -19,8 +19,8 @@ public class BoundWriter extends ElementWriter {
 	 * @param indentLevel
 	 *            The indent level of the element.
 	 */
-	public BoundWriter(int indentLevel) {
-		super(indentLevel);
+	public BoundWriter(int indentLevel, boolean prettyOutput) {
+        super(indentLevel, prettyOutput);
 	}
 
 
@@ -34,7 +34,7 @@ public class BoundWriter extends ElementWriter {
 
         // Only add the Bound if the origin string isn't empty
         if (bound.getOrigin() != "") {
-            objectKey("bounds", true);
+            objectKey("bounds", false);
             startObject(true);
             // Write with the US locale (to force . instead of , as the decimal separator)
             // Use only 5 decimal places (~1.2 meter resolution should be sufficient for Bound)

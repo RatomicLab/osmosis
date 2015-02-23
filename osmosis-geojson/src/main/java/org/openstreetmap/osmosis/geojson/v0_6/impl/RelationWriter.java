@@ -34,11 +34,11 @@ public class RelationWriter extends EntityWriter {
      * @param indentLevel
      *            The indent level of the element.
      */
-    public RelationWriter(int indentLevel) {
-        super(indentLevel);
+    public RelationWriter(int indentLevel, boolean prettyOutput) {
+        super(indentLevel, prettyOutput);
 
-        tagWriter = new TagWriter(indentLevel + 1);
-        relationMemberWriter = new RelationMemberWriter(indentLevel + 1);
+        tagWriter = new TagWriter(indentLevel + 1, prettyOutput);
+        relationMemberWriter = new RelationMemberWriter(indentLevel + 1, prettyOutput);
     }
 
 

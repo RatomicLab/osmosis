@@ -32,16 +32,15 @@ public class OsmWriter extends ElementWriter {
 	 *            changesets)
 	 *
 	 */
-	public OsmWriter(int indentLevel, boolean renderAttributes) {
-		super(indentLevel);
+	public OsmWriter(int indentLevel, boolean renderAttributes, boolean prettyOutput) {
+		super(indentLevel, prettyOutput);
 		
 		this.renderAttributes = renderAttributes;
 		
 		// Create the sub-element writer which calls the appropriate element
 		// writer based on data type.
-		subElementWriter = new SubElementWriter(indentLevel + 1);
+		subElementWriter = new SubElementWriter(indentLevel + 1, prettyOutput);
 	}
-	
 	
 	/**
 	 * Begins an element.
@@ -50,6 +49,7 @@ public class OsmWriter extends ElementWriter {
         startObject(true);
 
         if (renderAttributes) {
+
             addAttribute("version", XmlConstants.OSM_VERSION, true);
             addAttribute("generator", "Osmosis " + OsmosisConstants.VERSION, false);
         }
@@ -120,12 +120,12 @@ public class OsmWriter extends ElementWriter {
 		 * @param indentLevel
 		 *            The indent level of the sub-elements.
 		 */
-        public SubElementWriter(int indentLevel) {
-            super(indentLevel);
-            nodeWriter = new NodeWriter(indentLevel);
-            wayWriter = new WayWriter(indentLevel);
-            relationWriter = new RelationWriter(indentLevel);
-            boundWriter = new BoundWriter(indentLevel);
+        public SubElementWriter(int indentLevel, boolean prettyOutput) {
+            super(indentLevel, prettyOutput);
+            nodeWriter = new NodeWriter(indentLevel, prettyOutput);
+            wayWriter = new WayWriter(indentLevel, prettyOutput);
+            relationWriter = new RelationWriter(indentLevel, prettyOutput);
+            boundWriter = new BoundWriter(indentLevel, prettyOutput);
         }
 
 

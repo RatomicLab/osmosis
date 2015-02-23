@@ -32,10 +32,10 @@ public class NodeWriter extends EntityWriter {
 	 * @param indentLevel
 	 *            The indent level of the element.
 	 */
-	public NodeWriter(int indentLevel) {
-		super(indentLevel);
+	public NodeWriter(int indentLevel, boolean prettyOutput) {
+		super(indentLevel, prettyOutput);
 		
-		tagWriter = new TagWriter(indentLevel + 1);
+		tagWriter = new TagWriter(indentLevel + 1, prettyOutput);
 		
 		// Only write the first 7 decimal places.
 		// Write in US locale so that a '.' is used as the decimal separator.

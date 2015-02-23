@@ -21,8 +21,8 @@ public class RelationMemberWriter extends ElementWriter {
      * @param indentLevel
      *            The indent level of the element.
      */
-    public RelationMemberWriter(int indentLevel) {
-        super(indentLevel);
+    public RelationMemberWriter(int indentLevel, boolean prettyOutput) {
+        super(indentLevel, prettyOutput);
 
         memberTypeRenderer = new MemberTypeRenderer();
     }

@@ -20,8 +20,8 @@ public class WayNodeWriter extends ElementWriter {
      * @param indentLevel
      *            The indent level of the element.
      */
-    public WayNodeWriter(int indentLevel) {
-        super(indentLevel);
+    public WayNodeWriter(int indentLevel, boolean prettyOutput) {
+        super(indentLevel, prettyOutput);
     }
 
 

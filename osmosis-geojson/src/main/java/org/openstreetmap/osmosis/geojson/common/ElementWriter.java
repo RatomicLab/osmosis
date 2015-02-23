@@ -60,6 +60,8 @@ public class ElementWriter {
      */
     private int myIndentLevel;
 
+    private boolean prettyOutput;
+
     private final TimestampFormat myTimestampFormat;
 
     /**
@@ -73,8 +75,9 @@ public class ElementWriter {
      *
      * @param anIndentionLevel The indent level of the element.
      */
-    protected ElementWriter(final int anIndentionLevel) {
+    protected ElementWriter(final int anIndentionLevel, final boolean prettyOutput) {
         this.myIndentLevel = anIndentionLevel;
+        this.prettyOutput = prettyOutput;
 
         myTimestampFormat = new geojsonTimestampFormat();
         this.myLineSeparator = System.getProperty("line.separator");
@@ -98,9 +101,19 @@ public class ElementWriter {
      * @throws IOException if an error occurs.
      */
     private void writeIndent() throws IOException {
+       writeIndent(0);
+    }
+
+    /**
+     * Writes a series of spaces to indent the current line.
+     *
+     * @param addLevel Number of level to add
+     * @throws IOException if an error occurs.
+     */
+    private void writeIndent(int addLevel) throws IOException {
         int indentSpaceCount;
 
-        indentSpaceCount = myIndentLevel * INDENT_SPACES_PER_LEVEL;
+        indentSpaceCount = (myIndentLevel + addLevel) * INDENT_SPACES_PER_LEVEL;
 
         for (int i = 0; i < indentSpaceCount; i++) {
             myWriter.append(' ');
@@ -183,6 +196,12 @@ public class ElementWriter {
         try {
             if(!first) {
                 myWriter.append(',');
+
+                if (prettyOutput)
+                {
+                    myWriter.append("\n");
+                    writeIndent();
+                }
             }
 
             myWriter.append("{");
@@ -200,6 +219,12 @@ public class ElementWriter {
         try {
             if(!first) {
                 myWriter.append(',');
+            }
+
+            if (prettyOutput)
+            {
+                myWriter.append("\n");
+                writeIndent();
             }
 
             myWriter.append('"');
@@ -231,6 +256,13 @@ public class ElementWriter {
             if(!first) {
                 myWriter.append(',');
             }
+
+            if (prettyOutput)
+            {
+                myWriter.append("\n");
+                writeIndent();
+            }
+
             myWriter.append('"');
             myWriter.append(value);
             myWriter.append('"');
@@ -249,6 +281,12 @@ public class ElementWriter {
         try {
             if(!first) {
                 myWriter.append(',');
+            }
+
+            if (prettyOutput)
+            {
+                myWriter.append("\n");
+                writeIndent();
             }
 
             myWriter.append(value.toString());
@@ -282,6 +320,12 @@ public class ElementWriter {
                 myWriter.append(',');
             }
 
+            if (prettyOutput)
+            {
+                myWriter.append("\n");
+                writeIndent(1);
+            }
+
             myWriter.append('"');
             myWriter.append(name);
             myWriter.append("\": \"");
@@ -307,6 +351,12 @@ public class ElementWriter {
                 myWriter.append(',');
             }
 
+            if (prettyOutput)
+            {
+                myWriter.append("\n");
+                writeIndent(1);
+            }
+
             myWriter.append('"');
             myWriter.append(name);
             myWriter.append("\": ");
@@ -322,7 +372,15 @@ public class ElementWriter {
      */
     protected void endObject() {
         try {
+
+            if (prettyOutput)
+            {
+                myWriter.append("\n");
+                writeIndent();
+            }
+
             myWriter.append("}");
+
         } catch (IOException e) {
             throw new OsmosisRuntimeException("Unable to write data.", e);
         }

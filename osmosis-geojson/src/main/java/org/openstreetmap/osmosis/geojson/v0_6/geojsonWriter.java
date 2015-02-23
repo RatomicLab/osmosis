@@ -26,10 +26,10 @@ public class geojsonWriter extends BaseGeojsonWriter implements Sink {
 	 * @param writer
 	 *            The writer to send all data to.
 	 */
-	public geojsonWriter(BufferedWriter writer) {
+	public geojsonWriter(BufferedWriter writer, boolean prettyOutput) {
 		super(writer);
-		
-		osmWriter = new OsmWriter(0, true);
+
+		osmWriter = new OsmWriter(0, true, prettyOutput);
 	}
 	
 	
@@ -41,10 +41,10 @@ public class geojsonWriter extends BaseGeojsonWriter implements Sink {
 	 * @param compressionMethod
 	 *            Specifies the compression method to employ.
 	 */
-	public geojsonWriter(File file, CompressionMethod compressionMethod) {
+	public geojsonWriter(File file, CompressionMethod compressionMethod, boolean prettyOutput) {
 		super(file, compressionMethod);
 		
-		osmWriter = new OsmWriter(0, true);
+		osmWriter = new OsmWriter(0, true, prettyOutput);
 	}
 
 	

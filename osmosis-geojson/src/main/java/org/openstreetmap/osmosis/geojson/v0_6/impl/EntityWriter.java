@@ -21,7 +21,7 @@ public class EntityWriter extends ElementWriter {
 	 * @param indentionLevel
 	 *            The indent level of the element.
 	 */
-	protected EntityWriter(int indentionLevel) {
-		super(indentionLevel);
+	protected EntityWriter(int indentionLevel, boolean prettyOutput) {
+		super(indentionLevel, prettyOutput);
 	}
 }

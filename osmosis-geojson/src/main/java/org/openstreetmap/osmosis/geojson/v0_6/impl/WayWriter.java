@@ -33,11 +33,11 @@ public class WayWriter extends EntityWriter {
      * @param indentLevel
      *            The indent level of the element.
      */
-    public WayWriter(int indentLevel) {
-        super(indentLevel);
+    public WayWriter(int indentLevel, boolean prettyOutput) {
+        super(indentLevel, prettyOutput);
 
-        tagWriter = new TagWriter(indentLevel + 1);
-        wayNodeWriter = new WayNodeWriter(indentLevel + 1);
+        tagWriter = new TagWriter(indentLevel + 1, prettyOutput);
+        wayNodeWriter = new WayNodeWriter(indentLevel + 1, prettyOutput);
     }
 
     /**
