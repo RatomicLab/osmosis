@@ -1,12 +1,13 @@
 // This software is released into the Public Domain.  See copying.txt for details.
 package org.openstreetmap.osmosis.geojson.v0_6.impl;
 
-import org.openstreetmap.osmosis.core.domain.v0_6.Tag;
-import org.openstreetmap.osmosis.core.domain.v0_6.Way;
-import org.openstreetmap.osmosis.core.domain.v0_6.WayNode;
-import org.openstreetmap.osmosis.core.domain.v0_6.OsmUser;
+import org.openstreetmap.osmosis.core.domain.v0_6.*;
+import org.openstreetmap.osmosis.pgsnapshot.common.NodeLocation;
+import org.openstreetmap.osmosis.pgsnapshot.v0_6.impl.*;
+import org.openstreetmap.osmosis.pgsnapshot.v0_6.impl.WayGeometryBuilder;
 
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -24,7 +25,8 @@ public class WayWriter extends EntityWriter {
      * Write the tags of a way.
      */
     private TagWriter tagWriter;
-    private boolean first = true;
+
+    private boolean wayNodeList;
 
 
     /**
@@ -33,11 +35,13 @@ public class WayWriter extends EntityWriter {
      * @param indentLevel
      *            The indent level of the element.
      */
-    public WayWriter(int indentLevel, boolean prettyOutput) {
+    public WayWriter(int indentLevel, boolean prettyOutput, boolean wayNodeList) {
         super(indentLevel, prettyOutput);
 
         tagWriter = new TagWriter(indentLevel + 1, prettyOutput);
         wayNodeWriter = new WayNodeWriter(indentLevel + 1, prettyOutput);
+
+        this.wayNodeList = wayNodeList;
     }
 
     /**
@@ -46,7 +50,7 @@ public class WayWriter extends EntityWriter {
      * @param way
      *            The way to be processed.
      */
-    public void process(Way way) {
+    public void process(Way way, boolean first, WayGeometryBuilder wayGeometryBuilder) {
         OsmUser user;
         List<WayNode> wayNodes;
         Collection<Tag> tags;
@@ -54,45 +58,97 @@ public class WayWriter extends EntityWriter {
         user = way.getUser();
 
         startObject(first);
-        addAttribute("id", way.getId(), true);
-        addAttribute("version", way.getVersion(), false);
-        addAttribute("timestamp", way.getFormattedTimestamp(getTimestampFormat()), false);
+        addAttribute("type", "feature", true);
+        addAttribute("id", "way/" + way.getId(), false);
 
-        if (!user.equals(OsmUser.NONE)) {
-            addAttribute("uid", user.getId(), false);
-            addAttribute("user", user.getName(), false);
-        }
+        objectKey("properties", false);
+        startObject(true);
+        addAttribute("type", "way", true);
+        addAttribute("id", way.getId(), false);
 
-        if (way.getChangesetId() != 0) {
-            addAttribute("changeset", way.getChangesetId(), false);
-        }
-
-        wayNodes = way.getWayNodes();
         tags = way.getTags();
-
-        if (wayNodes.size() > 0 || tags.size() > 0) {
-            objectKey("nodes", false);
-            startList();
-            for (WayNode wayNode : wayNodes) {
-                wayNodeWriter.processWayNode(wayNode);
-            }
-            wayNodeWriter.reset();
-            endList();
-
+        if (tags.size() > 0)
+        {
             objectKey("tags", false);
             startObject(true);
             for (Tag tag : tags) {
                 tagWriter.process(tag);
             }
             tagWriter.reset();
-            endObject();
+            endObject(); // tags
         }
 
+        wayNodes = way.getWayNodes();
+        List<NodeLocation> locations = new ArrayList<NodeLocation>();
+
+        if (wayNodeList)
+        {
+            objectKey("nodes", false);
+            startList();
+
+
+            for (WayNode wayNode : wayNodes) {
+                wayNodeWriter.processWayNode(wayNode);
+                locations.add(wayGeometryBuilder.getNodeLocation(wayNode.getNodeId()));
+            }
+
+            wayNodeWriter.reset();
+            endList(); // nodes
+        }
+        else
+        {
+            for (WayNode wayNode : wayNodes) {
+                locations.add(wayGeometryBuilder.getNodeLocation(wayNode.getNodeId()));
+            }
+        }
+
+        objectKey("meta", false);
+        startObject(true);
+        addAttribute("timestamp", way.getFormattedTimestamp(getTimestampFormat()), true);
+        addAttribute("version", way.getVersion(), false);
+
+        if (way.getChangesetId() != 0) {
+            addAttribute("changeset", way.getChangesetId(), false);
+        }
+
+        if (!user.equals(OsmUser.NONE)) {
+            addAttribute("uid", user.getId(), false);
+            addAttribute("user", user.getName(), false);
+        }
+
+        endObject(); // meta
+        endObject(); // properties
+
+        objectKey("geometry", false);
+        startObject(true);
+        addAttribute("type", "LineString", true);
+        objectKey("coordinates", false);
+        startList();
+
+        boolean firstLocation = true;
+        for (NodeLocation location : locations) {
+            if (location.isValid())
+            {
+                if (!firstLocation)
+                {
+                    nextListElement();
+                }
+
+                startList();
+                appendToList(location.getLongitude(), true);
+                appendToList(location.getLatitude(), false);
+                endList();
+
+                if (firstLocation)
+                {
+                    firstLocation = false;
+                }
+            }
+        }
+
+        endList(); // coordinates
+        endObject(); // geometry
         endObject();
-
-        if(first) {
-            first = false;
-        }
     }
 
 
@@ -108,6 +164,5 @@ public class WayWriter extends EntityWriter {
     }
 
     public void reset() {
-        first = true;
     }
 }

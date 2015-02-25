@@ -24,7 +24,6 @@ public class NodeWriter extends EntityWriter {
      */
     private TagWriter tagWriter;
     private NumberFormat numberFormat;
-    private boolean first = true;
 
 	/**
 	 * Creates a new instance.
@@ -52,48 +51,60 @@ public class NodeWriter extends EntityWriter {
      * @param node
      *            The node to be processed.
      */
-    public void process(Node node) {
+    public void process(Node node, boolean first) {
         OsmUser user;
         Collection<Tag> tags;
 
         user = node.getUser();
 
         startObject(first);
-        addAttribute("id", node.getId(), true);
+        addAttribute("type", "feature", true);
+        addAttribute("id", "node/" + node.getId(), false);
+
+        objectKey("properties", false);
+        startObject(true);
+        addAttribute("type", "node", true);
+        addAttribute("id", node.getId(), false);
+
+        tags = node.getTags();
+        if (tags.size() > 0)
+        {
+            objectKey("tags", false);
+            startObject(true);
+            for (Tag tag : tags) {
+                tagWriter.process(tag);
+            }
+            tagWriter.reset();
+            endObject(); // tags
+        }
+
+        objectKey("meta", false);
+        startObject(true);
+        addAttribute("timestamp", node.getFormattedTimestamp(getTimestampFormat()), true);
         addAttribute("version", node.getVersion(), false);
-        addAttribute("timestamp", node.getFormattedTimestamp(getTimestampFormat()), false);
+
+        if (node.getChangesetId() != 0) {
+            addAttribute("changeset", node.getChangesetId(), false);
+        }
 
         if (!user.equals(OsmUser.NONE)) {
             addAttribute("uid", user.getId(), false);
             addAttribute("user", user.getName(), false);
         }
 
-        if (node.getChangesetId() != 0) {
-            addAttribute("changeset", node.getChangesetId(), false);
-        }
+        endObject(); // meta
+        endObject(); // properties
 
-        addAttribute("lat", node.getLatitude(), false);
-        addAttribute("lon", node.getLongitude(), false);
-
-        tags = node.getTags();
-
-        if (tags.size() > 0) {
-            objectKey("tags", false);
-            startObject(true);
-
-            for (Tag tag : tags) {
-                tagWriter.process(tag);
-            }
-
-            tagWriter.reset();
-            endObject();
-        }
-
+        objectKey("geometry", false);
+        startObject(true);
+        addAttribute("type", "Point", true);
+        objectKey("coordinates", false);
+        startList();
+        appendToList(node.getLongitude(), true);
+        appendToList(node.getLatitude(), false);
+        endList(); // coordinates
+        endObject(); // geometry
         endObject();
-
-        if(first) {
-            first = false;
-        }
     }
 
 
@@ -109,6 +120,5 @@ public class NodeWriter extends EntityWriter {
 
 
     public void reset() {
-        first = true;
     }
 }

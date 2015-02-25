@@ -299,6 +299,17 @@ public class ElementWriter {
     /**
      *
      */
+    protected void nextListElement() {
+        try {
+            myWriter.append(',');
+        } catch (IOException e) {
+            throw new OsmosisRuntimeException("Unable to write data.", e);
+        }
+    }
+
+    /**
+     *
+     */
     protected void endList() {
         try {
             myWriter.append("]");

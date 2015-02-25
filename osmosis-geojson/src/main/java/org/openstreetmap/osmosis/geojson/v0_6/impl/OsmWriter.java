@@ -4,9 +4,14 @@ package org.openstreetmap.osmosis.geojson.v0_6.impl;
 import org.openstreetmap.osmosis.core.OsmosisConstants;
 import org.openstreetmap.osmosis.core.OsmosisRuntimeException;
 import org.openstreetmap.osmosis.core.container.v0_6.*;
+import org.openstreetmap.osmosis.core.domain.v0_6.Tag;
 import org.openstreetmap.osmosis.geojson.common.ElementWriter;
+import org.openstreetmap.osmosis.pgsnapshot.common.NodeLocationStoreType;
+import org.openstreetmap.osmosis.pgsnapshot.v0_6.impl.*;
+import org.openstreetmap.osmosis.pgsnapshot.v0_6.impl.WayGeometryBuilder;
 
 import java.io.Writer;
+import java.util.HashSet;
 
 
 /**
@@ -32,14 +37,14 @@ public class OsmWriter extends ElementWriter {
 	 *            changesets)
 	 *
 	 */
-	public OsmWriter(int indentLevel, boolean renderAttributes, boolean prettyOutput) {
+	public OsmWriter(int indentLevel, boolean renderAttributes, boolean prettyOutput, NodeLocationStoreType storeType, boolean wayNodeList, String nodeIgnoreTags) {
 		super(indentLevel, prettyOutput);
 		
 		this.renderAttributes = renderAttributes;
 		
 		// Create the sub-element writer which calls the appropriate element
 		// writer based on data type.
-		subElementWriter = new SubElementWriter(indentLevel + 1, prettyOutput);
+		subElementWriter = new SubElementWriter(indentLevel + 1, prettyOutput, storeType, wayNodeList, nodeIgnoreTags);
 	}
 	
 	/**
@@ -49,10 +54,13 @@ public class OsmWriter extends ElementWriter {
         startObject(true);
 
         if (renderAttributes) {
-
             addAttribute("version", XmlConstants.OSM_VERSION, true);
             addAttribute("generator", "Osmosis " + OsmosisConstants.VERSION, false);
         }
+
+        addAttribute("type", "FeatureCollection", false);
+        objectKey("features", false);
+        startList();
 	}
 	
 	
@@ -60,10 +68,7 @@ public class OsmWriter extends ElementWriter {
 	 * Ends an element.
 	 */
 	public void end() {
-        if(subElementWriter.getState() != null) {
-            endList();
-        }
-
+        endList();
         endObject();
 	}
 	
@@ -102,9 +107,10 @@ public class OsmWriter extends ElementWriter {
         private WayWriter wayWriter;
         private RelationWriter relationWriter;
         private BoundWriter boundWriter;
-        private boolean boundWritten = false; // can't write a Bound twice
-        private boolean entitiesWritten = false; // can't write a Bound after any Entities
+        private org.openstreetmap.osmosis.pgsnapshot.v0_6.impl.WayGeometryBuilder wayGeometryBuilder;
         private State state = null;
+        private boolean first = true;
+        private HashSet<String> nodeIgnoreTags;
 
         public enum State {
             BOUNDS, NODES, WAYS, RELATIONS;
@@ -120,12 +126,19 @@ public class OsmWriter extends ElementWriter {
 		 * @param indentLevel
 		 *            The indent level of the sub-elements.
 		 */
-        public SubElementWriter(int indentLevel, boolean prettyOutput) {
+        public SubElementWriter(int indentLevel, boolean prettyOutput, NodeLocationStoreType storeType, boolean wayNodeList, String nodeIgnoreTags) {
             super(indentLevel, prettyOutput);
             nodeWriter = new NodeWriter(indentLevel, prettyOutput);
-            wayWriter = new WayWriter(indentLevel, prettyOutput);
+            wayWriter = new WayWriter(indentLevel, prettyOutput, wayNodeList);
             relationWriter = new RelationWriter(indentLevel, prettyOutput);
             boundWriter = new BoundWriter(indentLevel, prettyOutput);
+            wayGeometryBuilder = new WayGeometryBuilder(storeType);
+
+            this.nodeIgnoreTags = new HashSet<String>();
+            String[] tags = nodeIgnoreTags.split(",");
+            for (int i = 0; i < tags.length; i++) {
+                this.nodeIgnoreTags.add(tags[i]);
+            }
         }
 
 
@@ -142,11 +155,10 @@ public class OsmWriter extends ElementWriter {
             relationWriter.setWriter(writer);
             boundWriter.setWriter(writer);
             // reset the flags indicating which data has been written
-            boundWritten = false;
-            entitiesWritten = false;
             nodeWriter.reset();
             wayWriter.reset();
             relationWriter.reset();
+            first = true;
         }
 
 
@@ -154,16 +166,31 @@ public class OsmWriter extends ElementWriter {
          * {@inheritDoc}
          */
         public void process(NodeContainer node) {
-            if (state != State.NODES) {
-                if(state != null) {
-                    endList();
+
+            // Store all nodes
+            wayGeometryBuilder.addNodeLocation(node.getEntity());
+
+            // Write only node with tags to the output (Other nodes are wayNodes)
+            if (node.getEntity().getTags().size() > 0) {
+
+                // Process node only if some tags are not in ignore list
+                boolean ignoreTags = true;
+                for (Tag tag : node.getEntity().getTags()) {
+                    if (!nodeIgnoreTags.contains(tag.getKey())) {
+                        ignoreTags = false;
+                        break;
+                    }
                 }
-                objectKey("nodes", false);
-                startList();
-                state = State.NODES;
+
+                if (!ignoreTags)
+                {
+                    nodeWriter.process(node.getEntity(), first);
+
+                    if (first) {
+                        first = false;
+                    }
+                }
             }
-            nodeWriter.process(node.getEntity());
-            entitiesWritten = true;
         }
 
 
@@ -171,16 +198,17 @@ public class OsmWriter extends ElementWriter {
          * {@inheritDoc}
          */
         public void process(WayContainer way) {
-            if (state != State.WAYS) {
-                if(state != null) {
-                    endList();
+
+            // Only write ways with 2 or more nodes
+            if (way.getEntity().getWayNodes().size() > 1)
+            {
+                wayWriter.process(way.getEntity(), first, wayGeometryBuilder);
+
+                if (first)
+                {
+                    first = false;
                 }
-                objectKey("ways", false);
-                startList();
-                state = State.WAYS;
             }
-            wayWriter.process(way.getEntity());
-            entitiesWritten = true;
         }
 
 
@@ -188,16 +216,7 @@ public class OsmWriter extends ElementWriter {
          * {@inheritDoc}
          */
         public void process(RelationContainer relation) {
-            if (state != State.RELATIONS) {
-                if(state != null) {
-                    endList();
-                }
-                objectKey("relations", false);
-                startList();
-                state = State.RELATIONS;
-            }
-            relationWriter.process(relation.getEntity());
-            entitiesWritten = true;
+
         }
 
 
@@ -205,14 +224,7 @@ public class OsmWriter extends ElementWriter {
          * {@inheritDoc}
          */
         public void process(BoundContainer bound) {
-            if (boundWritten) {
-                throw new OsmosisRuntimeException("Bound element already written and only one allowed.");
-            }
-            if (entitiesWritten) {
-                throw new OsmosisRuntimeException("Can't write bound element after other entities.");
-            }
-            boundWriter.process(bound.getEntity());
-            boundWritten = true;
+
         }
 	}
 }

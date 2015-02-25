@@ -6,6 +6,7 @@ import org.openstreetmap.osmosis.core.task.v0_6.Sink;
 import org.openstreetmap.osmosis.geojson.common.BaseGeojsonWriter;
 import org.openstreetmap.osmosis.geojson.common.CompressionMethod;
 import org.openstreetmap.osmosis.geojson.v0_6.impl.OsmWriter;
+import org.openstreetmap.osmosis.pgsnapshot.common.NodeLocationStoreType;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -26,10 +27,10 @@ public class geojsonWriter extends BaseGeojsonWriter implements Sink {
 	 * @param writer
 	 *            The writer to send all data to.
 	 */
-	public geojsonWriter(BufferedWriter writer, boolean prettyOutput) {
+	public geojsonWriter(BufferedWriter writer, boolean prettyOutput, NodeLocationStoreType storeType, boolean wayNodeList, String nodeIgnoreTags) {
 		super(writer);
 
-		osmWriter = new OsmWriter(0, true, prettyOutput);
+		osmWriter = new OsmWriter(0, true, prettyOutput, storeType, wayNodeList, nodeIgnoreTags);
 	}
 	
 	
@@ -41,10 +42,10 @@ public class geojsonWriter extends BaseGeojsonWriter implements Sink {
 	 * @param compressionMethod
 	 *            Specifies the compression method to employ.
 	 */
-	public geojsonWriter(File file, CompressionMethod compressionMethod, boolean prettyOutput) {
+	public geojsonWriter(File file, CompressionMethod compressionMethod, boolean prettyOutput, NodeLocationStoreType storeType, boolean wayNodeList, String nodeIgnoreTags) {
 		super(file, compressionMethod);
 		
-		osmWriter = new OsmWriter(0, true, prettyOutput);
+		osmWriter = new OsmWriter(0, true, prettyOutput, storeType, wayNodeList, nodeIgnoreTags);
 	}
 
 	
