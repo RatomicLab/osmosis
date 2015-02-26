@@ -22,35 +22,6 @@ public class ElementWriter {
     private static final int INDENT_SPACES_PER_LEVEL = 2;
 
     /**
-     * Defines the characters that must be replaced by
-     * an encoded string when writing to XML.
-     */
-    private static final Map<Character, String> XML_ENCODING;
-
-    static {
-        // Define all the characters and their encodings.
-        XML_ENCODING = new HashMap<Character, String>();
-
-        // Non-xml compatible control characters will not be written
-        // with the exception of tab, carriage return and line feed.
-        for (int i = 0; i <= 0x1F; i++) {
-            if (i != 0x9 && i != 0xA && i != 0xD) {
-                XML_ENCODING.put(new Character((char) i), "");
-            }
-        }
-        XML_ENCODING.put(new Character((char) 0x7F), "");
-
-        XML_ENCODING.put(new Character('<'), "&lt;");
-        XML_ENCODING.put(new Character('>'), "&gt;");
-        XML_ENCODING.put(new Character('"'), "&quot;");
-        XML_ENCODING.put(new Character('\''), "&apos;");
-        XML_ENCODING.put(new Character('&'), "&amp;");
-        XML_ENCODING.put(new Character('\n'), "&#xA;");
-        XML_ENCODING.put(new Character('\r'), "&#xD;");
-        XML_ENCODING.put(new Character('\t'), "&#x9;");
-    }
-
-    /**
      * The output destination for writing all xml.
      */
     private Writer myWriter;
@@ -121,36 +92,59 @@ public class ElementWriter {
     }
 
     /**
-     * A utility method for encoding data in XML format.
-     *
-     * @param data The data to be formatted.
-     * @return The formatted data. This may be the input
-     *         string if no changes are required.
+     * Escape quotes, \, /, \r, \n, \b, \f, \t and other control characters (U+0000 through U+001F).
+     * @param s Input String
+     * @return escaped string
+     * Reference : https://code.google.com/p/json-simple/source/browse/trunk/src/main/java/org/json/simple/JSONValue.java
      */
-    private String escapeData(final String data) {
-        StringBuilder buffer = null;
+    private String escapeString(String s) {
 
-        for (int i = 0; i < data.length(); ++i) {
-            char currentChar = data.charAt(i);
+        if (s == null)
+            return null;
 
-            String replacement = XML_ENCODING.get(new Character(currentChar));
+        StringBuffer sb = new StringBuffer();
 
-            if (replacement != null) {
-                if (buffer == null) {
-                    buffer = new StringBuilder(data.substring(0, i));
-                }
-                buffer.append(replacement);
-
-            } else if (buffer != null) {
-                buffer.append(currentChar);
+        final int len = s.length();
+        for (int i = 0; i < len; i++) {
+            char ch = s.charAt(i);
+            switch (ch) {
+                case '"':
+                    sb.append("\\\"");
+                    break;
+                case '\\':
+                    sb.append("\\\\");
+                    break;
+                case '\b':
+                    sb.append("\\b");
+                    break;
+                case '\f':
+                    sb.append("\\f");
+                    break;
+                case '\n':
+                    sb.append("\\n");
+                    break;
+                case '\r':
+                    sb.append("\\r");
+                    break;
+                case '\t':
+                    sb.append("\\t");
+                    break;
+                default:
+                    //Reference: http://www.unicode.org/versions/Unicode5.1.0/
+                    if ((ch >= '\u0000' && ch <= '\u001F') || (ch >= '\u007F' && ch <= '\u009F') || (ch >= '\u2000' && ch <= '\u20FF')) {
+                        String ss = Integer.toHexString(ch);
+                        sb.append("\\u");
+                        for (int k = 0; k < 4 - ss.length(); k++) {
+                            sb.append('0');
+                        }
+                        sb.append(ss.toUpperCase());
+                    } else {
+                        sb.append(ch);
+                    }
             }
         }
 
-        if (buffer == null) {
-            return data;
-        } else {
-            return buffer.toString();
-        }
+        return sb.toString();
     }
 
     /**
@@ -341,7 +335,7 @@ public class ElementWriter {
             myWriter.append(name);
             myWriter.append("\": \"");
 
-            myWriter.append(escapeData(value));
+            myWriter.append(escapeString(value));
 
             myWriter.append('"');
         } catch (IOException e) {
