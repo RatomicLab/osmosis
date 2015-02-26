@@ -332,7 +332,7 @@ public class ElementWriter {
             }
 
             myWriter.append('"');
-            myWriter.append(name);
+            myWriter.append(escapeString(name));
             myWriter.append("\": \"");
 
             myWriter.append(escapeString(value));
